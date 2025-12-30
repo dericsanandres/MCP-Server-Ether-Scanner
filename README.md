@@ -1,201 +1,135 @@
-# 🐋 Ethereum Whale Scanner - MCP Server
+# Multi-Chain Blockchain Scanner - MCP Server
 
-An intelligent blockchain analysis tool that helps you discover and analyze Ethereum whales through the Model Context Protocol (MCP). Built as a Python MCP server for seamless integration with Claude Desktop.
+MCP server for whale detection and blockchain analysis. Works with **Claude Code**, **GPT Codex**, and any MCP-compatible client.
 
-## What This Does
+## Supported Chains
 
-This MCP server transforms Claude into a powerful blockchain intelligence assistant. It can:
+| Chain | Symbol | Free Tier |
+|-------|--------|-----------|
+| Ethereum | ETH | Yes |
+| BNB Smart Chain | BNB | Paid plan only |
 
-- **Analyze any Ethereum address** to determine if it's a whale and assess its activity patterns
-- **Discover whale addresses** through transaction network analysis
-- **Track large ETH movements** across the network in real-time
-- **Monitor exchange whale activity** to identify potential market movements
-- **Compare multiple addresses** to rank whale sizes and behaviors
+Uses **Etherscan V2 API** - one API key for all chains.
 
-Perfect for crypto researchers, traders, and anyone curious about whale behavior on Ethereum.
+## Quick Start
 
-## 🚀 Quick Start
+```bash
+# 1. Setup
+make setup
+cp .env.example .env
+# Edit .env with your API keys
 
-### Prerequisites
-- Python 3.10+ (recommended: Python 3.12)
-- Claude Desktop installed
-- Etherscan API key (free from [etherscan.io](https://etherscan.io/apis))
+# 2. Configure MCP client
+make config-claude   # For Claude Desktop
+make config-codex    # For GPT Codex
 
-### Installation
-
-1. **Clone and setup**
-   ```bash
-   git clone https://github.com/your-username/MCP-Server-Blockchain-Address-Scanner
-   cd MCP-Server-Blockchain-Address-Scanner
-   make setup
-   ```
-
-2. **Configure your API key**
-
-   Create a `.env` file:
-   ```bash
-   ETHERSCAN_API_KEY=your_api_key_here
-   ```
-
-3. **Add to Claude Desktop**
-
-   Update your Claude Desktop config at `~/Library/Application Support/Claude/claude_desktop_config.json`:
-   ```json
-   {
-     "mcpServers": {
-       "etherscan": {
-         "command": "/full/path/to/your/project/venv/bin/python",
-         "args": ["-m", "core.main"],
-         "cwd": "/full/path/to/your/project",
-         "env": {
-           "ETHERSCAN_API_KEY": "your_api_key_here"
-         }
-       }
-     }
-   }
-   ```
-
-4. **Restart Claude Desktop** and you're ready to go!
-
-## 🐋 Features & Examples
-
-### Comprehensive Whale Analysis
-Get detailed insights about any Ethereum address including balance, transaction patterns, activity scores, and risk assessment.
-
-**Example:**
-```
-Analyze this whale: 0xbe0eb53f46cd790cd13851d5eff43d12404d33e8
+# 3. Restart your MCP client
 ```
 
-### Whale Discovery Through Network Analysis
-Discover whale addresses by analyzing large transactions and their participants. Typically finds 10-30 real whale addresses.
+## Available Tools
 
-**Example:**
-```
-Discover top whales with balances over 1000 ETH
-```
+| Tool | Description |
+|------|-------------|
+| `check_balance` | Get native token balance |
+| `get_transactions` | Transaction history |
+| `get_token_transfers` | ERC20/BEP20 transfers |
+| `analyze_whale` | Full whale analysis with metrics |
+| `detect_whale_class` | Quick whale classification |
+| `compare_whales` | Compare multiple addresses |
+| `discover_whale_movements` | Track large movements |
+| `discover_top_whales` | Find whales via network analysis |
+| `track_exchange_whales` | Monitor exchange deposits/withdrawals |
+| `get_gas_prices` | Current gas prices |
+| `get_native_price` | ETH/BNB price |
+| `list_supported_chains` | Show available chains |
 
-### Large Movement Tracking
-Monitor recent large ETH transfers across the network and identify whale participants.
+All tools accept `chain` parameter: `ethereum` (default) or `bsc`.
 
-**Example:**
-```
-Show me recent whale movements above 500 ETH
-```
-
-### Exchange Whale Monitoring
-Track whale deposits and withdrawals from major exchanges to identify potential market movements.
-
-**Example:**
-```
-Track whale deposits and withdrawals from exchanges above 1000 ETH
-```
-
-### Multi-Whale Comparison
-Compare multiple addresses side-by-side with rankings and detailed metrics.
-
-**Example:**
-```
-Compare these whales: 0xbe0eb53f46cd790cd13851d5eff43d12404d33e8, 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
-```
-
-## 📊 Screenshots
-
-### Whale Analysis in Action
-*[Screenshot showing comprehensive whale analysis results with balance, classification, activity scores, and transaction metrics]*
-
-### Exchange Whale Tracking
-*[Screenshot displaying whale deposits/withdrawals from major exchanges with market impact analysis]*
-
-### Whale Discovery Results
-*[Screenshot of discovered whale addresses with their balances and classifications]*
-
-### Multi-Whale Comparison
-*[Screenshot showing side-by-side whale comparison with rankings and detailed metrics]*
-
-> **Note:** Add screenshots here showing the actual whale analysis results in Claude Desktop interface to help users understand what to expect.
-
-## 🛠️ Available MCP Tools
-
-| Tool | Description | Example Usage |
-|------|-------------|---------------|
-| `analyze_whale()` | Comprehensive whale analysis with activity scores | Analyze address behavior patterns |
-| `detect_whale_class()` | Quick whale classification by balance | Classify as Shrimp/Small/Medium/Large/Mega Whale |
-| `compare_whales()` | Compare multiple addresses | Rank whales by size and activity |
-| `discover_whale_movements()` | Track large ETH movements | Find recent whale transactions |
-| `discover_top_whales()` | Network analysis whale discovery | Find whales through transaction patterns |
-| `track_exchange_whales()` | Monitor exchange whale activity | Track deposits/withdrawals |
-| `check_balance()` | Get ETH balance for any address | Basic balance checking |
-| `get_transactions()` | Detailed transaction history | Analyze transaction patterns |
-| `get_token_transfers()` | ERC20 token transfer analysis | Track token movements |
-
-## 🏗️ Architecture
-
-Built with modern Python async patterns:
-
-- **FastMCP**: Modern MCP server framework with `@mcp.tool()` decorators
-- **Etherscan API**: Reliable blockchain data with rate limiting
-- **Pydantic**: Type-safe data validation and serialization
-- **Async/Await**: Non-blocking API calls for better performance
-
-## ⚙️ Configuration
-
-### Environment Variables
-- `ETHERSCAN_API_KEY`: Your Etherscan API key (required)
-- `RATE_LIMIT`: API requests per second (default: 5)
-
-### Whale Classifications
-- **Shrimp**: < 10 ETH
-- **Small Whale**: 10-100 ETH
-- **Medium Whale**: 100-1,000 ETH
-- **Large Whale**: 1,000-10,000 ETH
-- **Mega Whale**: > 10,000 ETH
-
-## 📈 Sample Results
-
-When you analyze a major whale address, you might see results like:
+## Examples
 
 ```
-🐋 MEGA WHALE (>10,000 ETH)
-Balance: 1,996,008 ETH
-Known Entity: Binance 7
+Check balance on Ethereum: 0xbe0eb53f46cd790cd13851d5eff43d12404d33e8
 
-ACTIVITY METRICS:
-Total Transactions: 45,892
-Large Transactions (>50 ETH): 12,453
-Activity Score: 85/100 (Very Active 🔥)
-Risk Score: 45/100 (Medium Risk ⚡)
+Analyze whale on BSC: 0xf977814e90da44bfa03b6295a0616a897441acec
+
+Track whale movements above 1000 BNB on BSC
 ```
 
-## 🚦 Rate Limiting & Best Practices
+## Whale Classifications
 
-- Respects Etherscan's rate limits (5 requests/second by default)
-- Implements intelligent caching to minimize API calls
-- Graceful error handling for network issues
-- Automatic retry logic with exponential backoff
+| Class | Balance |
+|-------|---------|
+| MEGA WHALE | >10,000 tokens |
+| LARGE WHALE | 1,000-10,000 |
+| MEDIUM WHALE | 100-1,000 |
+| SMALL WHALE | 10-100 |
+| SHRIMP | <10 |
 
-## 🤝 Contributing
+## Make Commands
 
-This project was built to demonstrate MCP server capabilities for blockchain analysis. Feel free to:
+```bash
+make setup        # Create venv, install deps
+make run          # Start MCP server
+make test         # Verify installation
+make lint         # Check code style
+make format       # Auto-format
+make check        # Verify config
+make clean        # Remove venv
+make config-claude # Show Claude config
+make config-codex  # Show Codex config
+```
 
-- Report issues or bugs
-- Suggest new whale analysis features
-- Submit pull requests for improvements
-- Share interesting whale discoveries!
+## Configuration
 
-## 📄 License
+```env
+# .env
+ETHERSCAN_API_KEY=your_key    # from etherscan.io/myapikey
+RATE_LIMIT=5                  # requests/sec (optional)
+```
 
-MIT License - feel free to use this code for your own blockchain analysis projects.
+Get a free API key: https://etherscan.io/myapikey
 
-## 🙋‍♂️ Support
+## Architecture
 
-Having issues? Check these common solutions:
+```
+src/core/
+├── server.py           # MCP tools
+├── blockchain_service.py # Multi-chain API client
+├── whale_detector.py   # Analysis engine
+├── chains.py           # Chain registry
+└── __init__.py
+```
 
-1. **"Module not found"** - Run `make setup` to create the virtual environment
-2. **"API key required"** - Make sure your `.env` file has a valid Etherscan API key
-3. **"MCP connection failed"** - Verify the full path in your Claude Desktop config
-4. **Rate limit errors** - Reduce the `RATE_LIMIT` environment variable
+## Adding New Chains
 
----
+Edit `src/core/chains.py`:
 
-**Happy whale hunting!** 🐋 This tool has successfully identified major whales including Binance hot wallets, Robinhood holdings, and other institutional-level addresses. Use it responsibly for research and analysis purposes.
+```python
+CHAIN_REGISTRY["polygon"] = ChainConfig(
+    name="Polygon",
+    symbol="MATIC",
+    api_url="https://api.polygonscan.com/api",
+    api_key_env="POLYGONSCAN_API_KEY",
+    explorer_url="https://polygonscan.com",
+    chain_id=137,
+)
+```
+
+## Requirements
+
+- Python 3.10+
+- Etherscan API key (free tier: Ethereum only)
+- MCP-compatible client (Claude Desktop, GPT Codex, etc.)
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| Module not found | `make setup` |
+| API key error | Check `.env` file |
+| Rate limit | Lower `RATE_LIMIT` in `.env` |
+| Unknown chain | `list_supported_chains()` |
+
+## License
+
+MIT

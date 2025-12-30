@@ -1,131 +1,149 @@
-# Makefile for MCP Etherscan Server
+# MCP Multi-Chain Blockchain Scanner
+# Works with: Claude Code, GPT Codex, any MCP-compatible client
+# Platforms: macOS, Linux, Windows (via Git Bash/WSL)
 
-VENV_NAME := venv
-PYTHON := python3.12
-VENV_PYTHON := $(VENV_NAME)/bin/python
-VENV_PIP := $(VENV_NAME)/bin/pip
+# Detect OS
+ifeq ($(OS),Windows_NT)
+    DETECTED_OS := Windows
+    PYTHON := python
+    VENV_BIN := .venv/Scripts
+    SEP := \\
+else
+    DETECTED_OS := $(shell uname -s)
+    PYTHON := python3
+    VENV_BIN := .venv/bin
+    SEP := /
+endif
 
-# Check Python version
-PYTHON_VERSION := $(shell $(PYTHON) -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
-REQUIRED_VERSION := 3.10
+VENV := .venv
+PIP := $(VENV_BIN)$(SEP)pip
+PY := $(VENV_BIN)$(SEP)python
+SRC := src
 
-# Default target
-.PHONY: help
+.PHONY: help setup install run test lint format clean check config-claude config-codex
+
+# Default
 help:
-	@echo "Available targets:"
-	@echo "  setup     - Create virtual environment and install dependencies"
-	@echo "  install   - Install dependencies in existing venv"
-	@echo "  run       - Run the MCP server"
-	@echo "  dev       - Install in development mode"
-	@echo "  clean     - Remove virtual environment"
-	@echo "  test      - Run tests (if available)"
-	@echo "  lint      - Run code linting"
-	@echo "  env       - Show environment info"
+	@echo "MCP Multi-Chain Blockchain Scanner"
+	@echo "==================================="
+	@echo ""
+	@echo "Setup:"
+	@echo "  make setup        - Create venv and install deps"
+	@echo "  make config-claude - Generate Claude Desktop config"
+	@echo "  make config-codex  - Generate GPT Codex config"
+	@echo ""
+	@echo "Run:"
+	@echo "  make run          - Start MCP server"
+	@echo "  make test         - Verify installation"
+	@echo ""
+	@echo "Dev:"
+	@echo "  make lint         - Check code style (ruff)"
+	@echo "  make format       - Auto-format code"
+	@echo "  make clean        - Remove venv and cache"
+	@echo ""
+	@echo "Detected OS: $(DETECTED_OS)"
 
-# Check Python version
-.PHONY: check-python
-check-python:
-	@echo "Checking Python version..."
-	@echo "Found: Python $(PYTHON_VERSION)"
-	@echo "Required: Python $(REQUIRED_VERSION)+"
-	@if [ "$(shell echo "$(PYTHON_VERSION) >= $(REQUIRED_VERSION)" | bc -l)" != "1" ] 2>/dev/null; then \
-		echo "ERROR: Python $(REQUIRED_VERSION)+ required. Found $(PYTHON_VERSION)"; \
-		echo "Please install Python $(REQUIRED_VERSION) or higher"; \
-		exit 1; \
-	fi
+# Setup
+setup: $(VENV) install
+	@echo ""
+	@echo "Setup complete. Next:"
+	@echo "  1. Copy .env.example to .env"
+	@echo "  2. Add API keys to .env"
+	@echo "  3. Run: make config-claude OR make config-codex"
+	@echo "  4. Restart your MCP client"
 
-# Create virtual environment and install dependencies
-.PHONY: setup
-setup: check-python $(VENV_NAME)
-	@echo "Setup complete! Run 'make run' to start the server"
-	@echo "Don't forget to configure your .env file with ETHERSCAN_API_KEY"
+$(VENV):
+	$(PYTHON) -m venv $(VENV)
+	$(PIP) install --upgrade pip
 
-$(VENV_NAME): check-python
-	@echo "Creating virtual environment..."
-	$(PYTHON) -m venv $(VENV_NAME)
-	@echo "Installing dependencies..."
-	$(VENV_PIP) install --upgrade pip
-	$(VENV_PIP) install -r requirements.txt
-	@echo "Installing package in development mode..."
-	$(VENV_PIP) install -e .
+install: $(VENV)
+	$(PIP) install -r requirements.txt
 
-# Install dependencies only
-.PHONY: install
-install: $(VENV_NAME)
-	$(VENV_PIP) install -r requirements.txt
+# Run
+run:
+	@test -f .env || (echo "ERROR: .env not found. Run: cp .env.example .env" && exit 1)
+	cd $(SRC) && ../$(PY) -m core.server
 
-# Install in development mode
-.PHONY: dev
-dev: $(VENV_NAME)
-	$(VENV_PIP) install -e .
+# Test
+test: $(VENV)
+	@echo "Running pytest..."
+	$(PIP) install -q pytest pytest-mock pytest-asyncio
+	$(PY) -m pytest tests/ -v
+	@echo "All tests passed!"
 
-# Run the server
-.PHONY: run
-run: $(VENV_NAME)
-	@if [ ! -f .env ]; then \
-		echo "Warning: .env file not found. Copying from .env.example..."; \
-		cp .env.example .env; \
-		echo "Please edit .env and add your ETHERSCAN_API_KEY"; \
-		exit 1; \
-	fi
-	@echo "Starting MCP Etherscan Server..."
-	$(VENV_PYTHON) -m core.main
+# Quick import check
+check-imports: $(VENV)
+	@echo "Testing imports..."
+	cd $(SRC) && ../$(PY) -c "from core import BlockchainService, get_supported_chains; print('Chains:', get_supported_chains())"
+	@echo "OK"
 
-# Quick start (setup + run)
-.PHONY: start
-start: setup
-	@echo "Starting server after setup..."
-	@$(MAKE) run
+# Lint
+lint: $(VENV)
+	$(PIP) install -q ruff
+	$(PY) -m ruff check $(SRC)/
 
-# Test the installation
-.PHONY: test
-test: $(VENV_NAME)
-	@echo "Testing installation..."
-	$(VENV_PYTHON) -c "import core; print('Package imports successfully')"
-	@echo "Checking dependencies..."
-	$(VENV_PIP) check
+format: $(VENV)
+	$(PIP) install -q ruff
+	$(PY) -m ruff format $(SRC)/
+	$(PY) -m ruff check --fix $(SRC)/
 
-# Lint code
-.PHONY: lint
-lint: $(VENV_NAME)
-	@echo "Linting code..."
-	$(VENV_PYTHON) -m flake8 src/ --max-line-length=100 --ignore=E501,W503 || echo "Install flake8: $(VENV_PIP) install flake8"
-
-# Show environment information
-.PHONY: env
-env: $(VENV_NAME)
-	@echo "Environment Information:"
-	@echo "Python: $(shell $(VENV_PYTHON) --version)"
-	@echo "Pip: $(shell $(VENV_PIP) --version)"
-	@echo "Virtual env: $(VENV_NAME)"
-	@echo "Installed packages:"
-	@$(VENV_PIP) list
-
-# Clean up
-.PHONY: clean
+# Clean
 clean:
-	@echo "Cleaning up..."
-	rm -rf $(VENV_NAME)
-	rm -rf build/
-	rm -rf dist/
-	rm -rf *.egg-info/
-	find . -type d -name __pycache__ -exec rm -rf {} +
-	find . -type f -name "*.pyc" -delete
-	@echo "Cleanup complete"
+	rm -rf $(VENV) build/ dist/ *.egg-info/
+	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
 
-# Force reinstall
-.PHONY: reinstall
-reinstall: clean setup
+# Check env
+check:
+	@echo "Config Check"
+	@echo "============"
+	@test -d $(VENV) && echo "[OK] venv" || echo "[!] venv missing - run: make setup"
+	@test -f .env && echo "[OK] .env" || echo "[!] .env missing - run: cp .env.example .env"
+	@grep -q "ETHERSCAN_API_KEY=.*[^=]" .env 2>/dev/null && echo "[OK] ETHERSCAN_API_KEY" || echo "[!] ETHERSCAN_API_KEY not set (get from etherscan.io/myapikey)"
 
-# Check if API key is configured
-.PHONY: check-env
-check-env:
-	@if [ ! -f .env ]; then \
-		echo "ERROR: .env file not found. Run 'cp .env.example .env' and configure it"; \
-		exit 1; \
-	fi
-	@if ! grep -q "ETHERSCAN_API_KEY=.*[^=]" .env; then \
-		echo "ERROR: ETHERSCAN_API_KEY not configured in .env file"; \
-		exit 1; \
-	fi
-	@echo "Environment configuration looks good"
+# Generate Claude Desktop config snippet
+config-claude:
+	@echo ""
+	@echo "Claude Desktop Configuration"
+	@echo "============================"
+	@echo "Add to: ~/Library/Application Support/Claude/claude_desktop_config.json (Mac)"
+	@echo "    or: %APPDATA%\\Claude\\claude_desktop_config.json (Windows)"
+	@echo ""
+	@echo '{'
+	@echo '  "mcpServers": {'
+	@echo '    "blockchain-scanner": {'
+	@echo '      "command": "$(shell cd $(VENV_BIN) && pwd)/python",'
+	@echo '      "args": ["-m", "core.server"],'
+	@echo '      "cwd": "$(shell pwd)/src",'
+	@echo '      "env": {'
+	@echo '        "ETHERSCAN_API_KEY": "YOUR_KEY",'
+	@echo '        "BSCSCAN_API_KEY": "YOUR_KEY"'
+	@echo '      }'
+	@echo '    }'
+	@echo '  }'
+	@echo '}'
+
+# Generate GPT Codex / OpenAI MCP config snippet
+config-codex:
+	@echo ""
+	@echo "GPT Codex / OpenAI Configuration"
+	@echo "================================="
+	@echo "Add to your MCP client configuration:"
+	@echo ""
+	@echo '{'
+	@echo '  "servers": {'
+	@echo '    "blockchain-scanner": {'
+	@echo '      "command": "$(shell cd $(VENV_BIN) && pwd)/python",'
+	@echo '      "args": ["-m", "core.server"],'
+	@echo '      "cwd": "$(shell pwd)/src",'
+	@echo '      "env": {'
+	@echo '        "ETHERSCAN_API_KEY": "YOUR_KEY",'
+	@echo '        "BSCSCAN_API_KEY": "YOUR_KEY"'
+	@echo '      }'
+	@echo '    }'
+	@echo '  }'
+	@echo '}'
+	@echo ""
+	@echo "Note: Config format may vary by client. Core fields:"
+	@echo "  - command: path to Python in venv"
+	@echo "  - args: [\"-m\", \"core.server\"]"
+	@echo "  - cwd: path to src/ directory"
